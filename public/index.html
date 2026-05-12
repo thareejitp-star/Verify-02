@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบยืนยันตัวตน</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Sarabun', sans-serif; background: #0d1117; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; color: #e6edf3; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 2rem 2.25rem; width: 100%; max-width: 440px; }
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.75rem; }
+    .rbx-badge { width: 44px; height: 44px; background: #e60012; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rbx-badge svg { width: 26px; height: 26px; fill: #fff; }
+    .header-text .name { font-size: 15px; font-weight: 600; color: #e6edf3; }
+    .header-text .sub { font-size: 12px; color: #7d8590; margin-top: 2px; }
+    .steps { display: flex; margin-bottom: 1.75rem; }
+    .step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; z-index: 1; }
+    .step:not(:last-child)::after { content: ''; position: absolute; top: 11px; left: 58%; width: 84%; height: 1px; background: #30363d; z-index: 0; }
+    .step-dot { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #30363d; background: #21262d; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #7d8590; transition: all 0.3s; z-index: 1; }
+    .step-dot.active { background: #e60012; border-color: #e60012; color: #fff; }
+    .step-dot.done { background: #238636; border-color: #238636; color: #fff; }
+    .step-dot.fail { background: #b91c1c; border-color: #b91c1c; color: #fff; }
+    .step-label { font-size: 11px; color: #7d8590; text-align: center; }
+    .step-label.active { color: #e6edf3; font-weight: 500; }
+    h1 { font-size: 20px; font-weight: 600; color: #e6edf3; margin-bottom: 6px; }
+    .desc { font-size: 14px; color: #7d8590; line-height: 1.6; margin-bottom: 1.5rem; }
+    .divider { height: 1px; background: #30363d; margin-bottom: 1.5rem; }
+    .group-box { display: flex; align-items: center; gap: 10px; background: #21262d; border: 1px solid #30363d; border-radius: 10px; padding: 10px 14px; margin-bottom: 1.25rem; }
+    .group-box .gname { font-size: 13px; font-weight: 500; color: #e6edf3; }
+    .group-box .gid { font-size: 11px; color: #7d8590; margin-top: 2px; }
+    label { display: block; font-size: 13px; font-weight: 500; color: #7d8590; margin-bottom: 6px; }
+    .input-wrap { position: relative; margin-bottom: 8px; }
+    .input-wrap .icon-left { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; pointer-events: none; }
+    input[type="text"] { width: 100%; padding: 10px 12px 10px 38px; font-size: 14px; font-family: 'Sarabun', sans-serif; background: #21262d; border: 1px solid #30363d; border-radius: 8px; color: #e6edf3; transition: border-color 0.15s; }
+    input[type="text"]:focus { outline: none; border-color: #e60012; box-shadow: 0 0 0 3px rgba(230,0,18,0.15); }
+    input[type="text"]::placeholder { color: #484f58; }
+    .hint { font-size: 12px; color: #7d8590; margin-bottom: 1.5rem; line-height: 1.5; }
+    .btn { width: 100%; padding: 11px; border-radius: 8px; border: none; font-size: 15px; font-family: 'Sarabun', sans-serif; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.15s; }
+    .btn-red { background: #e60012; color: #fff; }
+    .btn-red:hover:not(:disabled) { opacity: 0.88; }
+    .btn-red:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: #e6edf3; border: 1px solid #30363d; margin-top: 8px; }
+    .btn-ghost:hover { background: #21262d; }
+    .status { display: none; margin-top: 1.25rem; padding: 14px 16px; border-radius: 10px; font-size: 14px; line-height: 1.6; align-items: flex-start; gap: 10px; }
+    .status.show { display: flex; }
+    .status.pending { background: #21262d; border: 1px solid #30363d; color: #8b949e; }
+    .status.success { background: #0d2818; border: 1px solid #238636; color: #3fb950; }
+    .status.danger { background: #2d0f0f; border: 1px solid #b91c1c; color: #f85149; }
+    .status .si { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+    .not-in-group { display: none; margin-top: 1rem; }
+    .not-in-group.show { display: block; }
+    .btn-join { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px; border-radius: 8px; background: #e60012; color: #fff; font-size: 14px; font-family: 'Sarabun', sans-serif; font-weight: 600; text-decoration: none; border: none; cursor: pointer; margin-bottom: 8px; }
+    .btn-join:hover { opacity: 0.88; }
+    .recheck-hint { font-size: 12px; color: #7d8590; text-align: center; margin-top: 8px; }
+    .footer { margin-top: 1.25rem; font-size: 12px; color: #484f58; text-align: center; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="rbx-badge">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="17" y="0" width="66" height="66" rx="6" transform="rotate(15 50 33)"/></svg>
+    </div>
+    <div class="header-text">
+      <div class="name">Royal Thai Armed Forces</div>
+      <div class="sub">ระบบยืนยันตัวตนสมาชิก</div>
+    </div>
+  </div>
+  <div class="steps">
+    <div class="step"><div class="step-dot active" id="dot1">1</div><div class="step-label active" id="lbl1">กรอกข้อมูล</div></div>
+    <div class="step"><div class="step-dot" id="dot2">2</div><div class="step-label" id="lbl2">เช็ค Group</div></div>
+    <div class="step"><div class="step-dot" id="dot3">3</div><div class="step-label" id="lbl3">รับ Role</div></div>
+  </div>
+  <div id="formSection">
+    <h1>ยืนยันตัวตน</h1>
+    <p class="desc">กรอก Roblox Username และ Discord User ID เพื่อรับยศใน Discord ตามยศของคุณใน Roblox Group</p>
+    <div class="divider"></div>
+    <div class="group-box">
+      <span style="font-size:20px">🪖</span>
+      <div><div class="gname">Royal Thai Armed Forces</div><div class="gid">Group ID: 605614866 · ต้องเป็นสมาชิกก่อนยืนยัน</div></div>
+    </div>
+    <label for="rbxUser">Roblox Username</label>
+    <div class="input-wrap">
+      <span class="icon-left">👤</span>
+      <input type="text" id="rbxUser" placeholder="เช่น Builderman" oninput="validate()" />
+    </div>
+    <label for="dcUser" style="margin-top:12px;">Discord User ID</label>
+    <div class="input-wrap">
+      <span class="icon-left">🔷</span>
+      <input type="text" id="dcUser" placeholder="เช่น 123456789012345678" oninput="validate()" />
+    </div>
+    <p class="hint">วิธีหา Discord ID: Settings → Advanced → เปิด Developer Mode → คลิกขวาชื่อตัวเอง → Copy User ID</p>
+    <button class="btn btn-red" id="submitBtn" onclick="doVerify()" disabled>🔍 ตรวจสอบ Group</button>
+  </div>
+  <div class="status" id="statusBox"><span class="si" id="statusIcon">⏳</span><div id="statusText"></div></div>
+  <div class="not-in-group" id="notInGroup">
+    <a class="btn-join" href="https://www.roblox.com/groups/605614866" target="_blank">🔗 เข้าร่วม Roblox Group ที่นี่</a>
+    <button class="btn btn-ghost" onclick="doRecheck()">🔄 ตรวจสอบใหม่อีกครั้ง</button>
+    <p class="recheck-hint">หลังเข้าร่วม Group แล้ว กด "ตรวจสอบใหม่"</p>
+  </div>
+  <p class="footer">🔒 ข้อมูลของคุณจะถูกใช้เพื่อการยืนยันตัวตนเท่านั้น</p>
+</div>
+<script>
+  let lastUsername = '', lastDiscordId = '';
+  function validate() {
+    const u = document.getElementById('rbxUser').value.trim();
+    const d = document.getElementById('dcUser').value.trim();
+    document.getElementById('submitBtn').disabled = u.length < 3 || d.length < 10;
+  }
+  function setStep(active, failAt) {
+    for (let i = 1; i <= 3; i++) {
+      const dot = document.getElementById('dot' + i);
+      const lbl = document.getElementById('lbl' + i);
+      dot.className = 'step-dot'; lbl.className = 'step-label';
+      if (failAt && i === failAt) { dot.classList.add('fail'); dot.textContent = '✕'; }
+      else if (i < active) { dot.classList.add('done'); dot.textContent = '✓'; }
+      else if (i === active) { dot.classList.add('active'); dot.textContent = i; lbl.classList.add('active'); }
+      else { dot.textContent = i; }
+    }
+  }
+  function showStatus(type, icon, html) {
+    const box = document.getElementById('statusBox');
+    box.className = 'status show ' + type;
+    document.getElementById('statusIcon').textContent = icon;
+    document.getElementById('statusText').innerHTML = html;
+  }
+  function resetBtn() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = false;
+    btn.innerHTML = '🔍 ตรวจสอบ Group';
+  }
+  async function doVerify() {
+    lastUsername = document.getElementById('rbxUser').value.trim();
+    lastDiscordId = document.getElementById('dcUser').value.trim();
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').innerHTML = '<span class="spin">⏳</span> กำลังตรวจสอบ...';
+    document.getElementById('notInGroup').className = 'not-in-group';
+    setStep(2);
+    showStatus('pending', '⏳', '<strong>กำลังค้นหา username...</strong><br>ตรวจสอบบัญชี <strong>' + lastUsername + '</strong> ใน Roblox');
+    try {
+      const res = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ robloxUsername: lastUsername, discordUserId: lastDiscordId }) });
+      const data = await res.json();
+      if (data.success) {
+        setStep(4); showStatus('success', '✅', '<strong>ยืนยันสำเร็จ! 🎉</strong><br>' + data.message);
+        document.getElementById('formSection').style.opacity = '0.4';
+        document.getElementById('formSection').style.pointerEvents = 'none';
+      } else if (data.notInGroup) {
+        setStep(2, 2); showStatus('danger', '❌', '<strong>ยังไม่ได้เข้า Group</strong><br>' + data.message);
+        document.getElementById('notInGroup').className = 'not-in-group show'; resetBtn();
+      } else {
+        setStep(1); showStatus('danger', '⚠️', data.message); resetBtn();
+      }
+    } catch(e) { setStep(1); showStatus('danger', '⚠️', 'ไม่สามารถเชื่อมต่อ server ได้'); resetBtn(); }
+  }
+  async function doRecheck() {
+    document.getElementById('notInGroup').className = 'not-in-group';
+    setStep(2); showStatus('pending', '⏳', '<strong>กำลังตรวจสอบใหม่...</strong><br>เช็คสมาชิกภาพของ <strong>' + lastUsername + '</strong>');
+    document.getElementById('submitBtn').disabled = true;
+    try {
+      const res = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ robloxUsername: lastUsername, discordUserId: lastDiscordId }) });
+      const data = await res.json();
+      if (data.success) {
+        setStep(4); showStatus('success', '✅', '<strong>ยืนยันสำเร็จ! 🎉</strong><br>' + data.message);
+        document.getElementById('formSection').style.opacity = '0.4';
+        document.getElementById('formSection').style.pointerEvents = 'none';
+      } else if (data.notInGroup) {
+        setStep(2, 2); showStatus('danger', '❌', '<strong>ยังไม่ได้เข้า Group</strong><br>' + data.message);
+        document.getElementById('notInGroup').className = 'not-in-group show'; resetBtn();
+      } else { showStatus('danger', '⚠️', data.message); resetBtn(); }
+    } catch(e) { showStatus('danger', '⚠️', 'ไม่สามารถเชื่อมต่อ server ได้'); resetBtn(); }
+  }
+</script>
+</body>
+</html>
